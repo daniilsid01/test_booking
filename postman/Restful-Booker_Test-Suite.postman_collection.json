@@ -1,0 +1,3072 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-1111-4a5b-9c6d-restfulbooker1",
+    "name": "Restful-Booker API — набор тест-кейсов",
+    "description": "Postman-коллекция по тестовому заданию: позитивные и негативные тест-кейсы для REST-API Restful-Booker (https://restful-booker.herokuapp.com/apidoc/index.html).\n\nПокрытие: GET /ping, POST /auth, POST /booking, GET /booking (в т.ч. фильтры), GET/PUT/PATCH/DELETE /booking/:id.\n\nИзвестные дефекты сервиса помечены в названиях запросов как [известный дефект BUG-XX] — соответствующие проверки ожидаемо завершаются FAIL до исправления дефекта. Карта дефектов и детали — в файле Bug-Reports_Restful-Booker.xlsx.\n\nЗапросы самодостаточны: при необходимости создают собственные брони-фикстуры (сервис периодически сбрасывает данные). Порядок: рекомендуется полный прогон коллекции сверху вниз.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00. Ping (GET /ping)",
+      "item": [
+        {
+          "name": "TC-01: GET /ping — health check должен вернуть 200 OK [известный дефект BUG-01]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-01: ожидается HTTP 200 OK, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "});",
+                  "pm.test('Тело ответа', function () { pm.expect(pm.response.text()).to.not.be.empty; });",
+                  "console.log('Ответ /ping:', pm.response.code, JSON.stringify(pm.response.text()));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ping",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ping"
+              ]
+            }
+          },
+          "description": "Позитивный. Ожидание: 200 OK. Факт сервиса: 201 Created. Ссылка: BUG-01."
+        },
+        {
+          "name": "TC-02: POST /ping — метод не поддерживается",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ожидается 404 Not Found или 405 Method Not Allowed', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([404, 405]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ping",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ping"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 404/405. Метод зарегистрирован только для GET."
+        }
+      ]
+    },
+    {
+      "name": "01. Auth (POST /auth)",
+      "item": [
+        {
+          "name": "TC-03: Корректные учётные данные -> токен",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('В теле присутствует непустой token', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('token');",
+                  "  pm.expect(j.token).to.be.a('string').and.to.not.be.empty;",
+                  "});",
+                  "pm.collectionVariables.set('token', pm.response.json().token);",
+                  "console.log('token =', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"admin\",\"password\":\"password123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            }
+          },
+          "description": "Позитивный. Ожидание: 200 OK + token."
+        },
+        {
+          "name": "TC-04: Неверный пароль -> 401 Unauthorized [известный дефект BUG-02]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-02: ожидается 401 Unauthorized, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(401);",
+                  "});",
+                  "if (pm.response.code === 200) { console.log('Дефект BUG-02:', JSON.stringify(pm.response.json())); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"admin\",\"password\":\"badpass\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 401. Факт: 200 + {\"reason\":\"Bad credentials\"}. BUG-02."
+        },
+        {
+          "name": "TC-05: Несуществующий пользователь -> 401 [известный дефект BUG-02]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-02: ожидается 401 Unauthorized, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"no_such_user\",\"password\":\"password123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 401. Факт: 200 Bad credentials. BUG-02."
+        },
+        {
+          "name": "TC-06: Пустое тело {} -> 400/401 [известный дефект BUG-02]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-02: ожидается 400/401, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([400, 401]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 400/401. Факт: 200 Bad credentials. BUG-02."
+        },
+        {
+          "name": "TC-07: Отсутствует поле password -> 400/401 [известный дефект BUG-02]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-02: ожидается 400/401, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([400, 401]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"admin\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 400/401. Факт: 200 Bad credentials. BUG-02."
+        },
+        {
+          "name": "TC-08: Невалидный JSON -> 400 Bad Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 400 Bad Request', function () { pm.expect(pm.response.code).to.eql(400); });",
+                  "pm.test('Тело содержит текст ошибки', function () { pm.expect(pm.response.text()).to.include('Bad Request'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "not-json",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 400. Факт: 400 Bad Request."
+        },
+        {
+          "name": "TC-09: GET /auth — маршрут только для POST -> 404/405",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ожидается 404/405', function () { pm.expect(pm.response.code).to.be.oneOf([404, 405]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            }
+          },
+          "description": "Негативный. Факт: 404."
+        },
+        {
+          "name": "TC-10: Content-Type отличный от application/json [расхождение с документацией BUG-09]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-09: ожидается отклонение запроса (4xx), фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([400, 401, 415, 422]);",
+                  "});",
+                  "if (pm.response.code === 200) { console.log('Дефект BUG-09: запрос принят без Content-Type application/json, token =', pm.response.json().token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "username=admin&password=password123",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth"
+              ]
+            }
+          },
+          "description": "Документация: Content-Type application/json обязателен. Ожидание: 4xx. Факт: 200 + token. BUG-09."
+        }
+      ]
+    },
+    {
+      "name": "02. Booking: Create (POST /booking)",
+      "item": [
+        {
+          "name": "TC-11: Валидный JSON -> 200 + bookingid + эхо полей",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test('bookingid — число', function () { pm.expect(j.bookingid).to.be.a('number'); });",
+                  "pm.test('Поля брони соответствуют отправленным', function () {",
+                  "  pm.expect(j.booking.firstname).to.eql('Sally');",
+                  "  pm.expect(j.booking.lastname).to.eql('Brown');",
+                  "  pm.expect(j.booking.totalprice).to.eql(111);",
+                  "  pm.expect(j.booking.depositpaid).to.eql(true);",
+                  "  pm.expect(j.booking.bookingdates.checkin).to.eql('2024-03-01');",
+                  "  pm.expect(j.booking.bookingdates.checkout).to.eql('2024-03-10');",
+                  "  pm.expect(j.booking.additionalneeds).to.eql('Breakfast');",
+                  "});",
+                  "pm.collectionVariables.set('booking_id', String(j.bookingid));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"Sally\",\"lastname\":\"Brown\",\"totalprice\":111,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2024-03-01\",\"checkout\":\"2024-03-10\"},\"additionalneeds\":\"Breakfast\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "description": "Позитивный. Ожидание: 200 OK, bookingid число, все поля эхом возвращены без изменений."
+        },
+        {
+          "name": "TC-12: Валидный XML (text/xml) -> 200 + <bookingid>",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Ответ в XML с bookingid', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.include('<bookingid>');",
+                  "  pm.expect(t).to.include('XMLJim');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/xml",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/xml",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "<booking><firstname>XMLJim</firstname><lastname>XMLBrown</lastname><totalprice>150</totalprice><depositpaid>true</depositpaid><bookingdates><checkin>2026-11-01</checkin><checkout>2026-11-05</checkout></bookingdates><additionalneeds>Breakfast</additionalneeds></booking>",
+              "options": {
+                "raw": {
+                  "language": "xml"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "description": "Позитивный. Ожидание: 200 OK, XML-ответ <created-booking> c <bookingid>."
+        },
+        {
+          "name": "TC-13: Валидный form-urlencoded -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test('Бронь создана с переданными значениями', function () {",
+                  "  pm.expect(j.booking.firstname).to.eql('FormJim');",
+                  "  pm.expect(j.booking.totalprice).to.eql(111);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "firstname=FormJim&lastname=FormBrown&totalprice=111&depositpaid=true&bookingdates%5Bcheckin%5D=2026-12-01&bookingdates%5Bcheckout%5D=2026-12-05",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "description": "Позитивный. Формат задокументирован в примерах API. Ожидание: 200 OK."
+        },
+        {
+          "name": "TC-14: Отсутствует обязательное поле firstname -> 400 [известный дефект BUG-03]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-03: ожидается 400 Bad Request, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(400);",
+                  "});",
+                  "if (pm.response.code === 500) { console.log('Дефект BUG-03: 500 вместо 400, тело:', JSON.stringify(pm.response.text())); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"lastname\":\"NoFirst\",\"totalprice\":50,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2024-01-01\",\"checkout\":\"2024-01-05\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 400 Bad Request (все поля обязательны). Факт: 500 Internal Server Error. BUG-03."
+        },
+        {
+          "name": "TC-15: Пустое тело {} -> 400 [известный дефект BUG-03]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-03: ожидается 400 Bad Request, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 400. Факт: 500. BUG-03."
+        },
+        {
+          "name": "TC-16: Некорректные типы полей -> 400 [известный дефект BUG-03]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-03: ожидается 400 Bad Request, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":123,\"lastname\":\"BadType\",\"totalprice\":\"abc\",\"depositpaid\":\"true\",\"bookingdates\":{\"checkin\":\"2026-12-10\",\"checkout\":\"2026-12-15\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 400. Факт: 500. BUG-03."
+        },
+        {
+          "name": "TC-17: Невалидный формат даты -> 400 [известный дефект BUG-04]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-04: ожидается 400, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(400);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  console.log('Дефект BUG-04: невалидная дата принята, checkin =', JSON.stringify(pm.response.json().booking.bookingdates.checkin));",
+                  "  pm.test('BUG-04: невалидная дата не должна сохраняться (NaN)', function () {",
+                  "    pm.expect(pm.response.json().booking.bookingdates.checkin).to.not.include('NaN');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"BadDates\",\"lastname\":\"X\",\"totalprice\":50,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"notadate\",\"checkout\":\"2024-01-05\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 400 (формат CCYY-MM-DD). Факт: 200, дата сохранена как \"0NaN-aN-aN\". BUG-04."
+        },
+        {
+          "name": "TC-18: checkout раньше checkin -> 400 [известный дефект BUG-04]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-04: ожидается 400, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"Rev\",\"lastname\":\"X\",\"totalprice\":50,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2024-02-10\",\"checkout\":\"2024-02-01\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 400 (checkout должен быть позже checkin). Факт: 200 — бронь принята. BUG-04."
+        }
+      ]
+    },
+    {
+      "name": "03. Booking: Get list & filters (GET /booking)",
+      "item": [
+        {
+          "name": "TC-19/20: Все брони — массив объектов {bookingid}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test('Ответ — непустой массив', function () {",
+                  "  pm.expect(j).to.be.an('array');",
+                  "  pm.expect(j.length).to.be.greaterThan(0);",
+                  "});",
+                  "pm.test('Схема: каждый элемент содержит числовой bookingid', function () {",
+                  "  j.forEach(item => { pm.expect(item).to.have.property('bookingid'); pm.expect(item.bookingid).to.be.a('number'); });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "description": "Позитивный. Ожидание: 200 OK, непустой массив, каждый элемент — {bookingid: number}."
+        },
+        {
+          "name": "TC-21: Фильтр firstname — точное регистрозависимое совпадение",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём бронь с уникальным firstname и запоминаем его для URL запроса",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const name = 'PostmanExact' + rnd;",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking', method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify({ firstname: name, lastname: 'FLast', totalprice: 10, depositpaid: false, bookingdates: { checkin: '2036-01-01', checkout: '2036-01-02' } }) }",
+                  "}, (err, res) => {",
+                  "  if (!err && res.code === 200) {",
+                  "    pm.collectionVariables.set('filter_name', name);",
+                  "    pm.collectionVariables.set('filter_fixture_id', String(res.json().bookingid));",
+                  "    console.log('Фикстура фильтра:', name, 'id=' + res.json().bookingid);",
+                  "  } else console.log('Ошибка создания фикстуры', err && err.message);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test('Созданная бронь присутствует в выдаче', function () {",
+                  "  const ids = j.map(x => String(x.bookingid));",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('filter_fixture_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking?firstname={{filter_name}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "firstname",
+                  "value": "{{filter_name}}"
+                }
+              ]
+            }
+          },
+          "description": "Позитивный. Предусловие: создаётся бронь с уникальным именем. Ожидание: в выдаче есть созданная бронь."
+        },
+        {
+          "name": "TC-22: Фильтр lastname — точное совпадение, созданная бронь в выдаче",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const name = 'PostmanLast' + rnd;",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking', method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify({ firstname: 'FName', lastname: name, totalprice: 10, depositpaid: false, bookingdates: { checkin: '2036-02-01', checkout: '2036-02-02' } }) }",
+                  "}, (err, res) => {",
+                  "  if (!err && res.code === 200) {",
+                  "    pm.collectionVariables.set('filter_lastname', name);",
+                  "    pm.collectionVariables.set('filter_fixture_id', String(res.json().bookingid));",
+                  "  } else console.log('Ошибка создания фикстуры', err && err.message);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Созданная бронь присутствует в выдаче', function () {",
+                  "  const ids = pm.response.json().map(x => String(x.bookingid));",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('filter_fixture_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking?lastname={{filter_lastname}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "lastname",
+                  "value": "{{filter_lastname}}"
+                }
+              ]
+            }
+          },
+          "description": "Позитивный. Предусловие: создаётся бронь с уникальной фамилией. Ожидание: в выдаче есть созданная бронь."
+        },
+        {
+          "name": "TC-23: Фильтр без совпадений -> []",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Ответ — пустой массив', function () { pm.expect(pm.response.json()).to.eql([]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking?firstname=NoSuchGuest_ZZZ",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "firstname",
+                  "value": "NoSuchGuest_ZZZ"
+                }
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 200 OK, пустой массив."
+        },
+        {
+          "name": "TC-24: checkin/checkout равны датам брони — бронь должна быть в выдаче [известный дефект BUG-05]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test('BUG-05: бронь с checkin == границе диапазона должна быть в выдаче', function () {",
+                  "  const ids = j.map(x => String(x.bookingid));",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('fixture_id'));",
+                  "});",
+                  "if (pm.response.json().map(x => String(x.bookingid)).indexOf(pm.collectionVariables.get('fixture_id')) === -1) {",
+                  "  console.log('Дефект BUG-05: граничная бронь не найдена (фикстура id=' + pm.collectionVariables.get('fixture_id') + ')');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking?checkin=2035-06-01&checkout=2035-06-10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "checkin",
+                  "value": "2035-06-01"
+                },
+                {
+                  "key": "checkout",
+                  "value": "2035-06-10"
+                }
+              ]
+            }
+          },
+          "description": "Негативный. Фикстура с checkin=2035-06-01, checkout=2035-06-10. Ожидание (>= по докам): фикстура в выдаче. Факт: нет — off-by-one. BUG-05."
+        },
+        {
+          "name": "TC-25: Диапазон на 1 день шире границ — бронь находится (контроль к BUG-05)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Бронь присутствует в расширенной выдаче', function () {",
+                  "  const ids = pm.response.json().map(x => String(x.bookingid));",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('fixture_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking?checkin=2035-05-31&checkout=2035-06-11",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "checkin",
+                  "value": "2035-05-31"
+                },
+                {
+                  "key": "checkout",
+                  "value": "2035-06-11"
+                }
+              ]
+            }
+          },
+          "description": "Позитивный контроль: фикстура (2035-06-01..2035-06-10) должна быть в выдаче при расширенном диапазоне."
+        },
+        {
+          "name": "TC-26: Диапазон дат — выдача содержит только существующие bookingid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const filtered = pm.response.json();",
+                  "pm.test('Ответ — массив', function () { pm.expect(filtered).to.be.an('array'); });",
+                  "// Контроль: все возвращённые id существуют в полном списке броней",
+                  "pm.sendRequest(pm.collectionVariables.get('base_url') + '/booking', (err, res) => {",
+                  "  const all = (err || res.code !== 200) ? [] : res.json().map(x => String(x.bookingid));",
+                  "  const set = new Set(all);",
+                  "  pm.test('Выдача фильтра не содержит мусорных id', function () {",
+                  "    filtered.forEach(it => pm.expect(set.has(String(it.bookingid))).to.be.true);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking?checkin=2100-01-01&checkout=2100-02-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "checkin",
+                  "value": "2100-01-01"
+                },
+                {
+                  "key": "checkout",
+                  "value": "2100-02-01"
+                }
+              ]
+            }
+          },
+          "description": "Негативный/санити. Окружение общее: брони других пользователей могут пересекаться с любым диапазоном, поэтому проверяем не пустоту, а корректность выборки: каждый id должен существовать в полном списке."
+        },
+        {
+          "name": "TC-27: Фильтр только по checkin — граничная бронь должна быть в выдаче [известный дефект BUG-05]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('BUG-05: бронь с checkin == дате запроса должна быть в выдаче', function () {",
+                  "  const ids = pm.response.json().map(x => String(x.bookingid));",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('fixture_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking?checkin=2035-06-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "checkin",
+                  "value": "2035-06-01"
+                }
+              ]
+            }
+          },
+          "description": "Фикстура с checkin=2035-06-01. Ожидание (док: greater than or equal): фикстура в выдаче. BUG-05."
+        },
+        {
+          "name": "TC-28: Комбинированный фильтр (firstname + checkin + checkout)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const name = 'ComboName' + rnd;",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking', method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify({ firstname: name, lastname: 'ComboLast', totalprice: 55, depositpaid: false, bookingdates: { checkin: '2035-06-01', checkout: '2035-06-10' } }) }",
+                  "}, (err, res) => {",
+                  "  if (!err && res.code === 200) {",
+                  "    pm.collectionVariables.set('filter_name', name);",
+                  "    pm.collectionVariables.set('filter_fixture_id', String(res.json().bookingid));",
+                  "  } else console.log('Ошибка создания фикстуры', err && err.message);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Бронь удовлетворяет всем условиям и присутствует в выдаче', function () {",
+                  "  const ids = pm.response.json().map(x => String(x.bookingid));",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('filter_fixture_id'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking?firstname={{filter_name}}&checkin=2035-05-01&checkout=2035-07-01",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "firstname",
+                  "value": "{{filter_name}}"
+                },
+                {
+                  "key": "checkin",
+                  "value": "2035-05-01"
+                },
+                {
+                  "key": "checkout",
+                  "value": "2035-07-01"
+                }
+              ]
+            }
+          },
+          "description": "Позитивный. Предусловие: создаётся бронь с уникальным firstname и датами 2035-06-01..2035-06-10. Ожидание: бронь в выдаче (все условия выполняются одновременно)."
+        }
+      ]
+    },
+    {
+      "name": "04. Booking: Get by id (GET /booking/:id)",
+      "item": [
+        {
+          "name": "TC-29: Существующая бронь -> 200 + полный объект",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test('Схема ответа', function () {",
+                  "  pm.expect(j.firstname).to.be.a('string');",
+                  "  pm.expect(j.lastname).to.be.a('string');",
+                  "  pm.expect(j.totalprice).to.be.a('number');",
+                  "  pm.expect(j.depositpaid).to.be.a('boolean');",
+                  "  pm.expect(j.bookingdates).to.have.property('checkin');",
+                  "  pm.expect(j.bookingdates).to.have.property('checkout');",
+                  "});",
+                  "pm.test('Значения соответствуют созданной фикстуре', function () {",
+                  "  pm.expect(j.firstname).to.include('PMFixt');",
+                  "  pm.expect(j.bookingdates.checkin).to.eql('2035-06-01');",
+                  "  pm.expect(j.bookingdates.checkout).to.eql('2035-06-10');",
+                  "});",
+                  "// id �������� ��� � ���������� fixture_id"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Позитивный. Предусловие: создаётся собственная бронь."
+        },
+        {
+          "name": "TC-30: Accept: application/xml -> XML, Content-Type application/xml [известный дефект BUG-08]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Тело — корректный XML брони', function () {",
+                  "  const t = pm.response.text();",
+                  "  pm.expect(t).to.include('<firstname>');",
+                  "});",
+                  "pm.test('BUG-08: Content-Type должен быть application/xml, фактический = ' + pm.response.headers.get('Content-Type'), function () {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/xml');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/xml",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Предусловие: используется бронь из TC-29 (если нет — создаётся). Ожидание: Content-Type: application/xml + XML-тело. Факт: XML-тело, но Content-Type: text/html. BUG-08."
+        },
+        {
+          "name": "TC-31: Несуществующий id -> 404 Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404', function () { pm.expect(pm.response.code).to.eql(404); });",
+                  "pm.test('Тело содержит Not Found', function () { pm.expect(pm.response.text()).to.include('Not Found'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking/999999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "999999999"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 404."
+        },
+        {
+          "name": "TC-32: Нечисловой id (abc) -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404', function () { pm.expect(pm.response.code).to.eql(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking/abc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "abc"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 404."
+        },
+        {
+          "name": "TC-33: Отрицательный id (-5) -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404', function () { pm.expect(pm.response.code).to.eql(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking/-5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "-5"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 404."
+        },
+        {
+          "name": "TC-34: Запрос удалённой брони -> 404 Not Found",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const ensureToken = (cb) => {",
+                  "  const t = pm.collectionVariables.get('token');",
+                  "  if (t) return cb(t);",
+                  "  pm.sendRequest({ url: base + '/auth', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) } }, (err, res) => {",
+                  "    if (err || res.code !== 200) return cb('');",
+                  "    pm.collectionVariables.set('token', res.json().token); cb(res.json().token);",
+                  "  });",
+                  "};",
+                  "ensureToken((token) => {",
+                  "  pm.sendRequest({ url: base + '/booking', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ firstname: 'DelProbe', lastname: 'DelLast', totalprice: 1, depositpaid: false, bookingdates: { checkin: '2036-07-01', checkout: '2036-07-02' } }) } }, (err, res) => {",
+                  "    if (err || res.code !== 200) { console.log('Не удалось создать фикстуру'); return; }",
+                  "    const id = String(res.json().bookingid);",
+                  "    pm.collectionVariables.set('fixture_id', id);",
+                  "    pm.sendRequest({ url: base + '/booking/' + id, method: 'DELETE', header: [{ key: 'Cookie', value: 'token=' + token }] }, (err2, res2) => {",
+                  "      if (err2) console.log('Удаление фикстуры не выполнено:', err2.message); else console.log('Фикстура удалена:', res2.code);",
+                  "    });",
+                  "  });",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 404 Not Found', function () { pm.expect(pm.response.code).to.eql(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. Предусловие: фикстура создаётся и удаляется в pre-request (строгая последовательность). Ожидание: 404."
+        },
+        {
+          "name": "TC-35: Accept: text/plain -> 406 Not Acceptable [известный дефект BUG-08]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-08: ожидается 406 Not Acceptable, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(406);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/plain",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. API отдаёт только JSON/XML. Ожидание: 406 Not Acceptable. Факт: 418 I'm a teapot. BUG-08."
+        }
+      ]
+    },
+    {
+      "name": "05. Booking: Update (PUT /booking/:id)",
+      "item": [
+        {
+          "name": "TC-36: Полное обновление с токеном -> 200, изменения сохраняются",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});",
+                  "// Гарантируем наличие токена в переменных коллекции",
+                  "if (!pm.collectionVariables.get('token')) {",
+                  "  const base = pm.collectionVariables.get('base_url');",
+                  "  pm.sendRequest({",
+                  "    url: base + '/auth', method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) { pm.collectionVariables.set('token', res.json().token); console.log('Токен получен'); }",
+                  "    else console.log('Не удалось получить токен');",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test('Данные обновлены', function () {",
+                  "  pm.expect(j.firstname).to.eql('PutUpdated');",
+                  "  pm.expect(j.lastname).to.eql('PutLast');",
+                  "  pm.expect(j.totalprice).to.eql(999);",
+                  "  pm.expect(j.depositpaid).to.eql(false);",
+                  "  pm.expect(j.bookingdates.checkin).to.eql('2036-03-01');",
+                  "});",
+                  "// Контроль: повторный GET должен вернуть обновлённые данные",
+                  "pm.sendRequest(pm.collectionVariables.get('base_url') + '/booking/' + pm.collectionVariables.get('fixture_id'), (err, res) => {",
+                  "  pm.test('Контроль: изменения сохранены (GET)', function () {",
+                  "    pm.expect(err).to.be.null;",
+                  "    pm.expect(res.code).to.eql(200);",
+                  "    pm.expect(res.json().firstname).to.eql('PutUpdated');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"PutUpdated\",\"lastname\":\"PutLast\",\"totalprice\":999,\"depositpaid\":false,\"bookingdates\":{\"checkin\":\"2036-03-01\",\"checkout\":\"2036-03-05\"},\"additionalneeds\":\"Dinner\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Позитивный. Предусловие: создаётся бронь и токен."
+        },
+        {
+          "name": "TC-37: Идемпотентность — повторный PUT тем же телом -> 200",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const ensureToken = (cb) => {",
+                  "  const t = pm.collectionVariables.get('token');",
+                  "  if (t) return cb(t);",
+                  "  pm.sendRequest({ url: base + '/auth', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) } }, (err, res) => {",
+                  "    if (err || res.code !== 200) return cb('');",
+                  "    pm.collectionVariables.set('token', res.json().token); cb(res.json().token);",
+                  "  });",
+                  "};",
+                  "ensureToken((token) => {",
+                  "  pm.sendRequest({ url: base + '/booking', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ firstname: 'PMIdem', lastname: 'IdemLast', totalprice: 111, depositpaid: true, bookingdates: { checkin: '2036-04-01', checkout: '2036-04-02' }, additionalneeds: 'Idem' }) } }, (err, res) => {",
+                  "    if (err || res.code !== 200) { console.log('Не удалось создать фикстуру'); return; }",
+                  "    const id = String(res.json().bookingid);",
+                  "    pm.collectionVariables.set('fixture_id', id);",
+                  "    // Первый PUT тем же телом, что и основной запрос",
+                  "    pm.sendRequest({ url: base + '/booking/' + id, method: 'PUT', header: [{ key: 'Content-Type', value: 'application/json' }, { key: 'Cookie', value: 'token=' + token }], body: { mode: 'raw', raw: JSON.stringify({ firstname: 'IdemName', lastname: 'IdemLast', totalprice: 111, depositpaid: true, bookingdates: { checkin: '2036-04-01', checkout: '2036-04-02' }, additionalneeds: 'Idem' }) } }, (err2, res2) => {",
+                  "      if (err2) console.log('Первый PUT не выполнен:', err2.message); else console.log('Первый PUT:', res2.code);",
+                  "    });",
+                  "  });",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Повторный PUT -> 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Результат идентичен', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j.firstname).to.eql('IdemName');",
+                  "  pm.expect(j.totalprice).to.eql(111);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"IdemName\",\"lastname\":\"IdemLast\",\"totalprice\":111,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2036-04-01\",\"checkout\":\"2036-04-02\"},\"additionalneeds\":\"Idem\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Позитивный. Предусловие: фикстура + первый PUT (строго последовательно), затем повторный PUT — основной запрос."
+        },
+        {
+          "name": "TC-38: PUT без токена -> 403 Forbidden",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 403 Forbidden', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"NoAuth\",\"lastname\":\"NoAuth\",\"totalprice\":1,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2036-05-01\",\"checkout\":\"2036-05-02\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 403."
+        },
+        {
+          "name": "TC-39: PUT с невалидным токеном -> 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 403 Forbidden', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token=zzz-invalid-token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"BadTok\",\"lastname\":\"BadTok\",\"totalprice\":1,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2036-05-01\",\"checkout\":\"2036-05-02\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 403."
+        },
+        {
+          "name": "TC-40: PUT через Basic Auth -> 200",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Обновление выполнено', function () { pm.expect(pm.response.json().firstname).to.eql('BasicPut'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Basic YWRtaW46cGFzc3dvcmQxMjM=",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"BasicPut\",\"lastname\":\"BasicPut\",\"totalprice\":777,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2036-06-01\",\"checkout\":\"2036-06-05\"},\"additionalneeds\":\"Basic\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Позитивный. Basic auth (admin:password123) задокументирован как альтернатива Cookie."
+        },
+        {
+          "name": "TC-41: Частичный payload (PUT требует все поля) -> 400 Bad Request",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});",
+                  "// Гарантируем наличие токена в переменных коллекции",
+                  "if (!pm.collectionVariables.get('token')) {",
+                  "  const base = pm.collectionVariables.get('base_url');",
+                  "  pm.sendRequest({",
+                  "    url: base + '/auth', method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) { pm.collectionVariables.set('token', res.json().token); console.log('Токен получен'); }",
+                  "    else console.log('Не удалось получить токен');",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 400 Bad Request', function () { pm.expect(pm.response.code).to.eql(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"PartialOnly\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 400 (полное обновление требует всех полей; частичное — PATCH)."
+        },
+        {
+          "name": "TC-42: PUT несуществующей брони -> 404 Not Found [известный дефект BUG-06]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Гарантируем наличие токена в переменных коллекции",
+                  "if (!pm.collectionVariables.get('token')) {",
+                  "  const base = pm.collectionVariables.get('base_url');",
+                  "  pm.sendRequest({",
+                  "    url: base + '/auth', method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) { pm.collectionVariables.set('token', res.json().token); console.log('Токен получен'); }",
+                  "    else console.log('Не удалось получить токен');",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-06: ожидается 404 Not Found, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"Ghost\",\"lastname\":\"Ghost\",\"totalprice\":1,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2036-01-01\",\"checkout\":\"2036-01-02\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/999999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "999999999"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 404. Факт: 405 Method Not Allowed. BUG-06."
+        }
+      ]
+    },
+    {
+      "name": "06. Booking: Partial update (PATCH /booking/:id)",
+      "item": [
+        {
+          "name": "TC-43: Частичное обновление одного поля -> 200, остальные не тронуты",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});",
+                  "// Гарантируем наличие токена в переменных коллекции",
+                  "if (!pm.collectionVariables.get('token')) {",
+                  "  const base = pm.collectionVariables.get('base_url');",
+                  "  pm.sendRequest({",
+                  "    url: base + '/auth', method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) { pm.collectionVariables.set('token', res.json().token); console.log('Токен получен'); }",
+                  "    else console.log('Не удалось получить токен');",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test('Изменено только firstname', function () {",
+                  "  pm.expect(j.firstname).to.eql('PatchedName');",
+                  "  pm.expect(j.lastname).to.eql('PMBase');",
+                  "  pm.expect(j.totalprice).to.eql(555);",
+                  "  pm.expect(j.depositpaid).to.eql(true);",
+                  "  pm.expect(j.bookingdates.checkin).to.eql('2035-06-01');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"PatchedName\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Позитивный. Фикстура: firstname PMFixt, lastname PMBase, totalprice 555. Ожидание: 200, изменено только firstname."
+        },
+        {
+          "name": "TC-44: Частичное обновление нескольких полей -> 200",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});",
+                  "// Гарантируем наличие токена в переменных коллекции",
+                  "if (!pm.collectionVariables.get('token')) {",
+                  "  const base = pm.collectionVariables.get('base_url');",
+                  "  pm.sendRequest({",
+                  "    url: base + '/auth', method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) { pm.collectionVariables.set('token', res.json().token); console.log('Токен получен'); }",
+                  "    else console.log('Не удалось получить токен');",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 200 OK', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "const j = pm.response.json();",
+                  "pm.test('Несколько полей обновлены', function () {",
+                  "  pm.expect(j.firstname).to.eql('Anna');",
+                  "  pm.expect(j.lastname).to.eql('Smith');",
+                  "  pm.expect(j.totalprice).to.eql(4242);",
+                  "  pm.expect(j.depositpaid).to.eql(true);",
+                  "  pm.expect(j.bookingdates.checkin).to.eql('2035-06-01');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"Anna\",\"lastname\":\"Smith\",\"totalprice\":4242}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Позитивный. Ожидание: 200, обновлены переданные поля, остальные сохранены."
+        },
+        {
+          "name": "TC-45: PATCH без токена -> 403 Forbidden",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 403 Forbidden', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"NoAuth\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 403."
+        },
+        {
+          "name": "TC-46: PATCH с невалидным токеном -> 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 403 Forbidden', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token=zzz-invalid",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"BadTok\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 403."
+        },
+        {
+          "name": "TC-47: PATCH несуществующей брони -> 404 [известный дефект BUG-06]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Гарантируем наличие токена в переменных коллекции",
+                  "if (!pm.collectionVariables.get('token')) {",
+                  "  const base = pm.collectionVariables.get('base_url');",
+                  "  pm.sendRequest({",
+                  "    url: base + '/auth', method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) { pm.collectionVariables.set('token', res.json().token); console.log('Токен получен'); }",
+                  "    else console.log('Не удалось получить токен');",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-06: ожидается 404 Not Found, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"firstname\":\"Ghost\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/999999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "999999999"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 404. Факт: 405. BUG-06."
+        },
+        {
+          "name": "TC-48: PATCH с неверным типом totalprice=\"abc\" -> 400 [известный дефект BUG-04]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});",
+                  "// Гарантируем наличие токена в переменных коллекции",
+                  "if (!pm.collectionVariables.get('token')) {",
+                  "  const base = pm.collectionVariables.get('base_url');",
+                  "  pm.sendRequest({",
+                  "    url: base + '/auth', method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) { pm.collectionVariables.set('token', res.json().token); console.log('Токен получен'); }",
+                  "    else console.log('Не удалось получить токен');",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-04: ожидается 400 Bad Request, фактический код = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(400);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  console.log('Дефект BUG-04: totalprice записан как', JSON.stringify(pm.response.json().totalprice));",
+                  "  pm.test('BUG-04: totalprice не должен стать null', function () {",
+                  "    pm.expect(pm.response.json().totalprice).to.not.eql(null);",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"totalprice\":\"abc\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 400. Факт: 200, totalprice сохранён как null. BUG-04."
+        }
+      ]
+    },
+    {
+      "name": "07. Booking: Delete (DELETE /booking/:id)",
+      "item": [
+        {
+          "name": "TC-49: Удаление с токеном -> 200/204 [известный дефект BUG-07]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});",
+                  "// Гарантируем наличие токена в переменных коллекции",
+                  "if (!pm.collectionVariables.get('token')) {",
+                  "  const base = pm.collectionVariables.get('base_url');",
+                  "  pm.sendRequest({",
+                  "    url: base + '/auth', method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) { pm.collectionVariables.set('token', res.json().token); console.log('Токен получен'); }",
+                  "    else console.log('Не удалось получить токен');",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-07: ожидается 200/204 (код успеха для DELETE), фактический = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+                  "});",
+                  "// Контроль: бронь действительно удалена",
+                  "pm.sendRequest(pm.collectionVariables.get('base_url') + '/booking/' + pm.collectionVariables.get('fixture_id'), (err, res) => {",
+                  "  pm.test('Контроль: GET удалённой брони -> 404', function () {",
+                  "    pm.expect(res.code).to.eql(404);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Позитивный. Ожидание: 200 OK / 204 No Content. Факт: 201 Created. BUG-07. Дополнительный контроль: GET после удаления -> 404."
+        },
+        {
+          "name": "TC-50: Повторное удаление удалённой брони -> 404 [известный дефект BUG-06]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const ensureToken = (cb) => {",
+                  "  const t = pm.collectionVariables.get('token');",
+                  "  if (t) return cb(t);",
+                  "  pm.sendRequest({ url: base + '/auth', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) } }, (err, res) => {",
+                  "    if (err || res.code !== 200) return cb('');",
+                  "    pm.collectionVariables.set('token', res.json().token); cb(res.json().token);",
+                  "  });",
+                  "};",
+                  "ensureToken((token) => {",
+                  "  pm.sendRequest({ url: base + '/booking', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ firstname: 'DelTwice', lastname: 'DelLast', totalprice: 1, depositpaid: false, bookingdates: { checkin: '2036-08-01', checkout: '2036-08-02' } }) } }, (err, res) => {",
+                  "    if (err || res.code !== 200) { console.log('Не удалось создать фикстуру'); return; }",
+                  "    const id = String(res.json().bookingid);",
+                  "    pm.collectionVariables.set('fixture_id', id);",
+                  "    // Первое удаление",
+                  "    pm.sendRequest({ url: base + '/booking/' + id, method: 'DELETE', header: [{ key: 'Cookie', value: 'token=' + token }] }, (err2, res2) => {",
+                  "      if (err2) console.log('Первое удаление не выполнено:', err2.message); else console.log('Первое удаление:', res2.code);",
+                  "    });",
+                  "  });",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-06: повторное удаление -> ожидается 404, фактический = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. Предусловие: фикстура создаётся и удаляется (строго последовательно) в pre-request. Ожидание: 404. Факт: 405. BUG-06."
+        },
+        {
+          "name": "TC-51: DELETE без токена -> 403 Forbidden",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 403 Forbidden', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 403."
+        },
+        {
+          "name": "TC-52: DELETE с невалидным токеном -> 403",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Создаём собственную бронь-фикстуру (устойчиво к ресету данных на сервере)",
+                  "const base = pm.collectionVariables.get('base_url');",
+                  "const rnd = Date.now().toString().slice(-6);",
+                  "const payload = {\"firstname\":\"PMFixt\",\"lastname\":\"PMBase\",\"totalprice\":555,\"depositpaid\":true,\"bookingdates\":{\"checkin\":\"2035-06-01\",\"checkout\":\"2035-06-10\"},\"additionalneeds\":\"None\"};",
+                  "pm.sendRequest({",
+                  "  url: base + '/booking',",
+                  "  method: 'POST',",
+                  "  header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "  body: { mode: 'raw', raw: JSON.stringify(payload) }",
+                  "}, (err, res) => {",
+                  "  if (err || res.code !== 200) { console.log('Не удалось создать фикстуру:', err ? err.message : res.code); return; }",
+                  "  pm.collectionVariables.set('fixture_id', String(res.json().bookingid));",
+                  "  console.log('Фикстура создана, id =', res.json().bookingid);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Статус 403 Forbidden', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token=invalidtoken123",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking/{{fixture_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{fixture_id}}"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 403."
+        },
+        {
+          "name": "TC-53: DELETE несуществующей брони -> 404 [известный дефект BUG-06]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Гарантируем наличие токена в переменных коллекции",
+                  "if (!pm.collectionVariables.get('token')) {",
+                  "  const base = pm.collectionVariables.get('base_url');",
+                  "  pm.sendRequest({",
+                  "    url: base + '/auth', method: 'POST',",
+                  "    header: [{ key: 'Content-Type', value: 'application/json' }],",
+                  "    body: { mode: 'raw', raw: JSON.stringify({ username: 'admin', password: 'password123' }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) { pm.collectionVariables.set('token', res.json().token); console.log('Токен получен'); }",
+                  "    else console.log('Не удалось получить токен');",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BUG-06: ожидается 404 Not Found, фактический = ' + pm.response.code, function () {",
+                  "  pm.expect(pm.response.code).to.eql(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking/999999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "999999999"
+              ]
+            }
+          },
+          "description": "Негативный. Ожидание: 404. Факт: 405. BUG-06."
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://restful-booker.herokuapp.com",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "booking_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fixture_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "filter_name",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "filter_fixture_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
